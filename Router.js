@@ -53,7 +53,7 @@ class Router
     const path = _link.getAttribute('href')
 
     // Launch AJAX request ----> if response run that :
-    this._craftAjaxDOM(this.ajaxResponse, path)
+    this._craftAjaxDOM(this.ajaxResponse, path) // Distinguer les 2 caches: celui dans _getPage() et _pushState()
   }
 
   _dontLeave()
@@ -82,8 +82,10 @@ class Router
     // Push response DOM & path
     this._pushState(_response, _path)
 
-    document.title = _response.title
-    document.querySelector('.content').innerHTML = _response.DOM
+    this._getPage('pages/' + _path + '.html', '.content', '.content')
+
+    // document.title = _response.title
+    // document.querySelector('.content').innerHTML = _response.DOM
 
     // Run current controller
     this._runController(_path)
@@ -92,6 +94,23 @@ class Router
   _pushState(_response, _path)
   {
     window.history.pushState({ DOM: _response.DOM, documentTitle: _response.title },"", _path)
+  }
+
+  _getPage(_url, _from = "body", _to = "body")
+  {
+    const cached = sessionStorage[_url]
+    
+    _to = document.querySelector(_to) // A string TO turns into an element
+    if(cached){ return _to.innerHTML = cached } // Cache responses for instant re-use re-use
+
+    const XHRt = new XMLHttpRequest // New ajax
+
+    XHRt.responseType = 'document'  // Ajax2 context and onload() event
+    XHRt.onload = () => { sessionStorage[_url] = _to.innerHTML = XHRt.response.querySelector(_from).innerHTML}
+    XHRt.open("GET", _url, true)
+    XHRt.send()
+
+    return XHRt
   }
 
   _runController(_path = '/')
